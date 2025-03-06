@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { sendMessageToAI } from "../app/services/api";
 
 export default function ChatBox() {
@@ -9,23 +9,42 @@ export default function ChatBox() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Reference to scroll to the latest message
+  const messageEndRef = useRef(null);
+
+  // Scroll to the bottom whenever messages change
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const sendMessage = async () => {
     if (!input) return;
 
-    const userMessage = { role: "user", content: input };
-    setMessages([...messages, userMessage]);
+    const newUserMessage = { role: "user", content: input };
 
+    let updatedMessages = [...messages, newUserMessage];
+
+    // If it's the first message, prepend the system message.
+    if (messages.length === 0) {
+      updatedMessages = [
+        { role: "system", content: "You are a helpful assistant." },
+        ...updatedMessages,
+      ];
+    }
+
+    setMessages(updatedMessages);
     setLoading(true);
     setError(null);
 
     try {
-      const aiResponse = await sendMessageToAI(input);
+      const aiResponse = await sendMessageToAI(updatedMessages);
       if (aiResponse) {
         const botMessage = { role: "bot", content: aiResponse.choices[0].message.content };
         setMessages((prev) => [...prev, botMessage]);
       }
     } catch (err) {
       setError("Sorry, something went wrong. Please try again.");
+      console.error(err); // Log the error to help with debugging
     } finally {
       setLoading(false);
     }
@@ -96,6 +115,17 @@ export default function ChatBox() {
           </div>
         </div>
 
+        {/* Message Area */}
+        <div className="mt-4 space-y-2 flex-1 overflow-y-auto px-4">
+          {messages.map((msg, index) => (
+            <div key={index} className={`p-2 rounded ${msg.role === "user" ? "bg-blue-100" : "bg-gray-100"}`}>
+              <strong>{msg.role === "user" ? "You: " : "EchoGPT: "}</strong>
+              {msg.content}
+            </div>
+          ))}
+          <div ref={messageEndRef} /> {/* Scroll reference */}
+        </div>
+
         {/* Chat Input Area */}
         <div className="w-full border-t p-4">
           <div className="max-w-3xl mx-auto flex items-center space-x-2 bg-gray-100 rounded-lg p-2">
@@ -107,7 +137,7 @@ export default function ChatBox() {
               placeholder="Ask a question..."
               className="flex-1 bg-transparent outline-none text-gray-700"
             />
-            <button 
+            <button
               onClick={sendMessage}
               className="bg-purple-600 text-white py-1 px-4 rounded-lg"
             >

@@ -1,20 +1,16 @@
-
-
 import axios from "axios";
 
-const API_KEY = process.env.NEXT_PUBLIC_ECHOGPT_API_KEY; // Store in .env file
-const BASE_URL = "https://api.echogpt.live/v1/chat/completions";
+const API_KEY = process.env.NEXT_PUBLIC_ECHOGPT_API_KEY; // Make sure this is in .env.local
 
-export const sendMessageToAI = async (message) => {
+const BASE_URL = "https://api.echogpt.live/v1/chat/completions"; // Correct API endpoint
+
+export const sendMessageToAI = async (messages) => {
   try {
     const response = await axios.post(
       BASE_URL,
       {
-        messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: message },
-        ],
-        model: "EchoGPT", // Verify the model name
+        model: "EchoGPT", // You can change this to "EchoGPT" if needed
+        messages,
       },
       {
         headers: {
@@ -23,10 +19,10 @@ export const sendMessageToAI = async (message) => {
         },
       }
     );
-
+    console.log(response.data);
     return response.data;
   } catch (error) {
-    console.error("Error:", error.response?.data || error.message);
-    return null;
+    console.error("EchoGPT API Error:", error.response?.data || error.message);
+    throw error;
   }
 };
